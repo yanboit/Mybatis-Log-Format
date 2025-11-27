@@ -50,7 +50,7 @@ LIMIT
 
 ### 方式 1：本地安装（推荐）
 
-1. 下载插件包：[Releases](https://github.com/你的用户名/mybatis-sql-formatter/releases) 中下载最新版本的 `mybatis-sql-formatter-1.0.0.zip`
+1. 下载插件包：[Releases](https://github.com/yanboit/Mybatis-Log-Format/releases/tag/MybatisLogFormat) 中下载最新版本的 `mybatis-sql-formatter-1.0.0.zip`
 2. 打开 IDEA → `File → Settings → Plugins → Install Plugin from Disk...`
 3. 选择下载的 zip 包，重启 IDEA 即可生效
 
@@ -150,4 +150,4 @@ A3：当前版本支持绝大多数常用 SQL 语法，复杂子查询场景将�
 
 ------
 
-如果觉得插件有用，欢迎给个 ⭐️ 支持一下！有任何问题或需求，可在 [Issues](https://github.com/你的用户名/mybatis-sql-formatter/issues) 中反馈～
+如果觉得插件有用，欢迎给个 ⭐️ 支持一下！有任何问题或需求，可在 [Issues](https://github.com/yanboit/Mybatis-Log-Format/issues) 中反馈～
