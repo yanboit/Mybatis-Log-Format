@@ -6,8 +6,9 @@
 
 
 <br />
-<br />
-<br />
+
+
+
 ## ✨ 核心功能
 
 - 🚀 一键格式化：控制台选中 MyBatis 日志（含 `Preparing`/`Parameters`），右键快速格式化
@@ -16,6 +17,9 @@
 - 🎨 极简图标：统一视觉风格，适配 IDEA 亮 / 暗主题
 - 📱 自适应窗口：根据 SQL 长度自动调整窗口大小，支持滚动查看
 
+
+<br />
+<br />
 
 
 ## 📋 格式化效果示例
@@ -46,6 +50,8 @@ LIMIT
     10;
 ```
 
+<br />
+
 
 
 ## 📥 安装方式
@@ -71,6 +77,8 @@ cd mybatis-sql-formatter
 # 编译产物在 build/distributions/ 目录下
 ```
 
+<br />
+
 
 
 ## 🚀 使用教程
@@ -80,6 +88,8 @@ cd mybatis-sql-formatter
 3. 右键弹出菜单，点击「格式化 MyBatis SQL」
 4. 自动弹出格式化后的 SQL 窗口，支持复制、语法高亮查看
 
+
+<br />
 
 
 ## 📐 支持的 SQL 类型
@@ -91,6 +101,8 @@ cd mybatis-sql-formatter
 - ✅ 多参数、多条件、多字段场景
 
 
+<br />
+
 
 ## 🛠️ 技术栈
 
@@ -100,6 +112,8 @@ cd mybatis-sql-formatter
 - 图标：SVG 极简风格（适配高分辨率）
 
 
+<br />
+
 
 ## 🎨 插件截图
 
@@ -107,6 +121,8 @@ cd mybatis-sql-formatter
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | ![image-20251127155144959](C:\Users\Richer\AppData\Roaming\Typora\typora-user-images\image-20251127155144959.png) | ![image-20251127155217744](C:\Users\Richer\AppData\Roaming\Typora\typora-user-images\image-20251127155217744.png) |
 
+
+<br />
 
 
 ## 🔧 常见问题
@@ -123,6 +139,8 @@ A2：检查选中的日志是否包含 `Preparing` 和 `Parameters` 关键字，
 
 A3：当前版本支持绝大多数常用 SQL 语法，复杂子查询场景将在后续版本迭代支持
 
+
+<br />
 
 
 ## 📌 版本迭代
@@ -142,6 +160,8 @@ A3：当前版本支持绝大多数常用 SQL 语法，复杂子查询场景将�
 - 极简风格插件图标
 
 
+<br />
+
 
 ## 🤝 贡献指南
 
@@ -151,6 +171,8 @@ A3：当前版本支持绝大多数常用 SQL 语法，复杂子查询场景将�
 4. 推送分支：`git push origin feature/xxx`
 5. 提交 Pull Request
 
+
+<br />
 
 
 ## 📄 许可证
