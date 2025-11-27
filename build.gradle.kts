@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "wang.imold"
-version = "1.0-SNAPSHOT"
+version = "1.1-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -16,11 +16,20 @@ repositories {
 intellij {
     version.set("2023.1.5")
     type.set("IC") // Target IDE Platform
-
+    downloadSources.set(true)
+    updateSinceUntilBuild.set(true)
     plugins.set(listOf(/* Plugin Dependencies */))
 }
 
+dependencies {
+    implementation(kotlin("stdlib-jdk8"))
+    // 移除可能过时的依赖，避免冲突
+}
+
 tasks {
+    buildSearchableOptions {
+        enabled = false // 关闭搜索优化（2024 版部分 API 不兼容旧优化逻辑）
+    }
     // Set the JVM compatibility versions
     withType<JavaCompile> {
         sourceCompatibility = "17"
@@ -31,8 +40,10 @@ tasks {
     }
 
     patchPluginXml {
-        sinceBuild.set("231")
-        untilBuild.set("241.*")
+        // 自动填充插件版本和兼容信息
+        version.set(project.version.toString())
+        sinceBuild.set("231.0")
+        untilBuild.set("243.*")
     }
 
     signPlugin {
