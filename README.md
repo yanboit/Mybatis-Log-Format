@@ -68,7 +68,7 @@ LIMIT
 
 ```bash
 # 克隆仓库
-git clone https://github.com/你的用户名/mybatis-sql-formatter.git
+git clone https://github.com/yanboit/Mybatis-Log-Format.git
 cd mybatis-sql-formatter
 
 # 编译插件（需 JDK 17+、Gradle 7+）
