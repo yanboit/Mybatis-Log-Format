@@ -1,4 +1,4 @@
-# MyBatis SQL Formatter - IDEA 插件
+# MyBatis SQL Formatt - IDEA 插件
 
 一款专为 IDEA 设计的 **MyBatis 日志 SQL 格式化插件**，一键将杂乱的 MyBatis 日志 SQL 转换为对齐规范、语法高亮的可读格式，提升开发调试效率。
 
