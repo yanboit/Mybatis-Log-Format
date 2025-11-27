@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<idea-plugin>
+    <id>wang.imold.mlf</id>
+    <name>Mybatis Log Format</name>
+    <version>1.0.0</version>
+    <vendor email="992525166@qq.comm" url="https://imold.wang">Richer</vendor>
+
+    <description><![CDATA[
+        🚀 高效格式化 MyBatis 控制台日志！一键解析 SQL 模板与参数，告别混乱日志，清晰查看执行详情～<br>
+    <br>
+    📝 <strong>支持日志格式：</strong><br>
+    • Preparing: SELECT * FROM user WHERE id = ?<br>
+    • Parameters: 1(Long), "张三"(String), true(Boolean)<br>
+    <br>
+    🔧 <strong>使用指南：</strong><br>
+    1. 在 Run/Debug 控制台选中 MyBatis 日志（支持多行选中）；<br>
+    2. 右键点击选中内容 → 选择「📊 格式化 MyBatis 日志」；<br>
+    3. 弹窗展示美化后的 SQL + 参数，支持一键复制、滚动查看长日志。<br>
+    <br>
+    ⚠️ <strong>环境要求：</strong> IntelliJ IDEA 2023+（基于 JDK 17 开发）
+]]></description>
+
+    <change-notes><![CDATA[
+    <h3>🎯 v1.0.0</h3>
+    <ul>
+        <li>✅ 初始版本：支持 MyBatis 标准日志格式化</li>
+        <li>✅ 智能识别：自动提取 Preparing/Parameters 片段</li>
+        <li>✅ 美化输出：SQL 关键字高亮、参数分行展示</li>
+        <li>✅ 便捷操作：右键菜单快速触发 + 快捷键支持</li>
+        <li>✅ 复制功能：一键复制格式化后的完整 SQL</li>
+    </ul>
+]]></change-notes>
+
+    <depends>com.intellij.modules.platform</depends>
+    <idea-version since-build="231" until-build="241.*"/>
+
+    <actions>
+        <action
+                id="wang.imold.mlf.MlfFormatAction"
+                class="wang.imold.mlf.MlfFormatAction"
+                text="📊 格式化 MyBatis 日志"
+                description="📝 格式化选中的 MyBatis 日志（自动替换 ? 为实际参数）">
+            <!-- 1. 控制台日志右键菜单（核心：Run/Debug 控制台选中日志时显示） -->
+            <add-to-group group-id="ConsoleEditorPopupMenu" anchor="last"/>
+            <!-- 2. 可选：保留代码编辑器右键（兼顾编辑文本时的使用） -->
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift M"/>
+            <!--            <constraint>-->
+            <!--                <on>editorTextSelection</on>-->
+            <!--            </constraint>-->
+        </action>
+    </actions>
+</idea-plugin>
