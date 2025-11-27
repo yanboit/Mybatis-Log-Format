@@ -2,7 +2,7 @@
 
 一款专为 IDEA 设计的 **MyBatis 日志 SQL 格式化插件**，一键将杂乱的 MyBatis 日志 SQL 转换为对齐规范、语法高亮的可读格式，提升开发调试效率。
 
- ![image-20251127155333305](C:\Users\Richer\AppData\Roaming\Typora\typora-user-images\image-20251127155333305.png)
+ ![image-20251127155333305](https://up.imold.wang/2025/11/20251127112852946.png)
 
 
 <br />
@@ -119,7 +119,7 @@ cd mybatis-sql-formatter
 
 | 右键菜单触发                                                 | 格式化结果窗口                                               |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| ![image-20251127155144959](C:\Users\Richer\AppData\Roaming\Typora\typora-user-images\image-20251127155144959.png) | ![image-20251127155217744](C:\Users\Richer\AppData\Roaming\Typora\typora-user-images\image-20251127155217744.png) |
+| ![image-20251127155144959](https://up.imold.wang/2025/11/20251127112845666.png) | ![image-20251127155217744](https://up.imold.wang/2025/11/20251127112843972.png) |
 
 
 <br />
