@@ -5,7 +5,9 @@
  ![image-20251127155333305](C:\Users\Richer\AppData\Roaming\Typora\typora-user-images\image-20251127155333305.png)
 
 
-
+<br />
+<br />
+<br />
 ## ✨ 核心功能
 
 - 🚀 一键格式化：控制台选中 MyBatis 日志（含 `Preparing`/`Parameters`），右键快速格式化
@@ -153,7 +155,7 @@ A3：当前版本支持绝大多数常用 SQL 语法，复杂子查询场景将�
 
 ## 📄 许可证
 
-本项目基于 [MIT 许可证](https://www.doubao.com/chat/LICENSE) 开源，可自由使用、修改和分发。
+本项目基于 [MIT 许可证](https://github.com/yanboit/Mybatis-Log-Format/blob/master/LICENSE) 开源，可自由使用、修改和分发。
 
 ------
 
