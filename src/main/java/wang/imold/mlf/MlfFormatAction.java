@@ -27,23 +27,22 @@ public class MlfFormatAction extends AnAction {
 
         MlfLogParser parser = new MlfLogParser();
         String formattedSql = parser.formatMybatisLog(selectedText);
+
         if (formattedSql == null) {
-            // 区分失败场景，给出详细提示（不直接访问私有常量）
             if (!selectedText.toLowerCase().contains("preparing:")) {
                 Messages.showErrorDialog("未识别到 Preparing 关键字，请选中完整的 MyBatis 日志！", "解析失败");
             } else if (!selectedText.toLowerCase().contains("parameters:")) {
-                // 无参数时，调用 parser 的方法提取 SQL 并格式化（避免访问私有常量）
                 String pureSql = parser.extractPureSqlFromLog(selectedText);
                 if (pureSql != null && !pureSql.isEmpty()) {
-                    formattedSql = parser.cleanAlignSql(pureSql);
+                    formattedSql = parser.formatRawSql(pureSql);
                     if (formattedSql != null) {
                         MlfUI.showFormattedLog(formattedSql);
                         return;
                     }
                 }
-                Messages.showErrorDialog("未识别到 Parameters 关键字，SQL 格式化失败！", "解析失败");
+                Messages.showErrorDialog("未识别到 Parameters 且无法解析 SQL！", "解析失败");
             } else {
-                Messages.showErrorDialog("SQL 格式化失败！可能是语法过于复杂或日志格式不完整。", "解析失败");
+                Messages.showErrorDialog("SQL 格式化失败！", "解析失败");
             }
             return;
         }

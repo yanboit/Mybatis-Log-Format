@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "wang.imold"
-version = "1.1-SNAPSHOT"
+version = "1.12-SNAPSHOT"
 
 repositories {
     mavenCentral()
