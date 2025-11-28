@@ -25,30 +25,109 @@ public class MlfLogParser {
     private static final Pattern CONNECT_BY_PATTERN = Pattern.compile("(?i)\\s+CONNECT\\s+BY\\s+", Pattern.CASE_INSENSITIVE);
     private static final Pattern START_WITH_PATTERN = Pattern.compile("(?i)\\s+START\\s+WITH\\s+", Pattern.CASE_INSENSITIVE);
 
+    // 修复：匹配「字段+注释」整体（确保注释和字段严格对应）
+    private static final Pattern FIELD_WITH_COMMENT_PATTERN = Pattern.compile("([A-Za-z0-9_\\.]+)\\s*(--.+?)?(?=,|\\s+FROM|$)", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+    // 匹配子查询
+    private static final Pattern SUB_SELECT_PATTERN = Pattern.compile("\\(\\s*(?i)SELECT\\s+.+?\\s*\\)", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+
     public String formatMybatisLog(String log) {
         try {
-            // 1. 提取原始 SQL（增强容错：处理日志不完整情况）
+            // 1. 提取原始 SQL
             Matcher preparingMatcher = PREPARING_PATTERN.matcher(log);
             String sql = null;
             if (preparingMatcher.find()) {
                 sql = preparingMatcher.group(1).trim();
-                // 移除 SQL 末尾可能的多余字符（如分号、逗号）
                 sql = sql.replaceAll(";\\s*$", "").replaceAll(",\\s*$", "");
             }
             if (sql == null || sql.isEmpty()) return null;
 
-            // 2. 提取参数（保留原始格式，避免多余字符）
+            // 2. 提取参数并替换 ?
             List<String> params = extractParameters(log);
+            String pureSql = replacePlaceholdersSafely(sql, params);
 
-            // 3. 替换 ? 为参数（安全替换，不替换字符串中的 ?）
-            sql = replacePlaceholdersSafely(sql, params);
+            // 3. 格式化所有查询（主查询+子查询）
+            pureSql = formatAllQueries(pureSql);
 
-            // 4. 格式化对齐（兼容 PLSQL，避免越界）
-            return cleanAlignSql(sql);
+            // 4. 最终格式化对齐
+            return cleanAlignSql(pureSql);
         } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
+    }
+
+    /**
+     * 格式化所有查询（主查询+子查询）：提取「字段+注释」整体
+     */
+    private String formatAllQueries(String sql) {
+        // 递归处理子查询
+        Matcher subSelectMatcher = SUB_SELECT_PATTERN.matcher(sql);
+        StringBuffer sb = new StringBuffer();
+        while (subSelectMatcher.find()) {
+            String subQuery = subSelectMatcher.group().trim();
+            String formattedSub = formatSingleQuery(subQuery);
+            subSelectMatcher.appendReplacement(sb, Matcher.quoteReplacement(formattedSub));
+        }
+        subSelectMatcher.appendTail(sb);
+        // 处理主查询
+        return formatSingleQuery(sb.toString());
+    }
+
+    /**
+     * 格式化单个查询：提取「字段+注释」，避免注释截断
+     */
+    private String formatSingleQuery(String query) {
+        String pureQuery = query.replaceAll("\\s+", " ").trim();
+        if (!pureQuery.toUpperCase().startsWith("SELECT") && !pureQuery.startsWith("(")) {
+            return query;
+        }
+        // 处理子查询的括号
+        boolean isSubQuery = pureQuery.startsWith("(");
+        if (isSubQuery) {
+            pureQuery = pureQuery.substring(1, pureQuery.length() - 1).trim();
+        }
+
+        String upperQuery = pureQuery.toUpperCase();
+        int fromIdx = upperQuery.indexOf(" FROM ");
+        if (fromIdx == -1) {
+            return query;
+        }
+
+        // 提取「字段+注释」整体（关键修复：避免注释截断）
+        String fieldsPart = pureQuery.substring(6, fromIdx).trim();
+        List<String> fieldsWithComments = extractFieldsWithComments(fieldsPart);
+        String restPart = pureQuery.substring(fromIdx).trim();
+
+        // 构建格式化后的查询
+        StringBuilder formatted = new StringBuilder();
+        if (isSubQuery) formatted.append("(");
+        formatted.append("SELECT\n");
+        for (int i = 0; i < fieldsWithComments.size(); i++) {
+            formatted.append("    ").append(fieldsWithComments.get(i));
+            if (i != fieldsWithComments.size() - 1) formatted.append(",");
+            formatted.append("\n");
+        }
+        formatted.append("FROM ").append(restPart);
+        if (isSubQuery) formatted.append(")");
+
+        return formatted.toString();
+    }
+
+    /**
+     * 提取「字段+注释」整体（确保注释和字段一一对应）
+     */
+    private List<String> extractFieldsWithComments(String fieldsPart) {
+        List<String> result = new ArrayList<>();
+        Matcher matcher = FIELD_WITH_COMMENT_PATTERN.matcher(fieldsPart);
+        while (matcher.find()) {
+            String field = matcher.group(1).trim();
+            String comment = matcher.group(2);
+            if (comment != null && !comment.trim().isEmpty()) {
+                field += " " + comment.trim();
+            }
+            result.add(field);
+        }
+        return result;
     }
 
     public String extractPureSqlFromLog(String log) {
@@ -66,7 +145,6 @@ public class MlfLogParser {
      */
     private String processParam(String param) {
         param = param.replaceAll("=>", "").trim();
-        // 确保字符串/日期参数带单引号
         if (!param.startsWith("'") && !param.startsWith("\"") && !param.matches("\\d+|true|false|null")) {
             param = "'" + param + "'";
         }
@@ -99,7 +177,6 @@ public class MlfLogParser {
             itemMatcher = PARAM_ITEM_BACKUP_PATTERN.matcher(paramsStr);
             while (itemMatcher.find()) {
                 String param = (itemMatcher.group(1) != null ? itemMatcher.group(1) : itemMatcher.group(2)).trim();
-                // 移除参数中的类型标记（如 (String)）
                 param = param.replaceAll("\\([^)]+\\)", "").trim();
                 param = processParam(param);
                 if (!param.isEmpty()) {
@@ -112,170 +189,100 @@ public class MlfLogParser {
     }
 
     /**
-     * 安全替换占位符（不替换字符串/函数中的 ?）
+     * 安全替换占位符（不替换字符串中的 ?）
      */
-    // 2. 修复参数替换逻辑（强制替换所有 ?，不依赖括号计数器）
     private String replacePlaceholdersSafely(String sql, List<String> params) {
         if (params.isEmpty()) return sql;
 
         StringBuilder sb = new StringBuilder(sql);
         int paramIndex = 0;
-
-        // 简化逻辑：直接替换所有 ?（MyBatis 日志中 ? 都是参数占位符，不会在函数内）
         for (int i = 0; i < sb.length() && paramIndex < params.size(); i++) {
             if (sb.charAt(i) == '?') {
                 String param = params.get(paramIndex++);
                 sb.replace(i, i + 1, param);
-                i += param.length() - 1; // 跳过替换后的字符
+                i += param.length() - 1;
             }
         }
-
         return sb.toString();
     }
 
     /**
-     * 格式化对齐（修复：GROUP BY 后无空行，分号位置正确）
+     * 格式化对齐（兼容 PLSQL，避免越界）
      */
-    String cleanAlignSql(String sql) {
+    public String cleanAlignSql(String sql) {
         sql = sql.replaceAll("\\s+", " ").trim();
         StringBuilder sb = new StringBuilder();
 
-        // 只处理 SELECT 语句（保持原有逻辑）
         if (!sql.toUpperCase().startsWith("SELECT")) {
             return sql;
         }
 
         String upperSql = sql.toUpperCase();
-        int currentIdx = 6; // SELECT 关键字长度
+        int currentIdx = 6;
 
-        // 1. 处理 SELECT 字段（支持多层函数、PLSQL 函数）
+        // 1. 处理 SELECT 字段
         int fromIdx = findFirstMatchIndex(upperSql, currentIdx, FROM_PATTERN);
         if (fromIdx == -1) {
-            return sql; // 无 FROM 子句，直接返回
+            return sql;
         }
         String selectField = sql.substring(currentIdx, fromIdx).trim();
         sb.append("SELECT\n");
-        // 智能拆分字段（忽略函数中的逗号）
-        List<String> fields = splitFieldsSafely(selectField);
+        List<String> fields = extractFieldsWithComments(selectField);
         for (int i = 0; i < fields.size(); i++) {
             sb.append("    ").append(fields.get(i));
-            if (i != fields.size() - 1) {
-                sb.append(",");
-            }
+            if (i != fields.size() - 1) sb.append(",");
             sb.append("\n");
         }
 
-        // 2. 处理 FROM 子句（支持 dblink、表关联）
-        currentIdx = fromIdx + 5; // FROM 关键字长度
+        // 2. 处理 FROM 子句
+        currentIdx = fromIdx + 5;
         int whereIdx = findFirstMatchIndex(upperSql, currentIdx, WHERE_PATTERN, GROUP_BY_PATTERN, ORDER_BY_PATTERN, CONNECT_BY_PATTERN, START_WITH_PATTERN);
         if (whereIdx == -1) whereIdx = sql.length();
         String fromTable = sql.substring(currentIdx, whereIdx).trim();
-        // 格式化表关联（JOIN 换行）
         fromTable = fromTable.replaceAll("(?i)\\s+(INNER|LEFT|RIGHT|FULL)\\s+JOIN\\s+", "\n    $1 JOIN ");
         fromTable = fromTable.replaceAll("(?i)\\s+ON\\s+", " ON ");
         sb.append("FROM\n    ").append(fromTable).append("\n");
 
         // 3. 处理 WHERE 子句
         if (upperSql.indexOf(" WHERE ", currentIdx) != -1) {
-            currentIdx = whereIdx + 6; // WHERE 关键字长度
+            currentIdx = whereIdx + 6;
             int nextClauseIdx = findFirstMatchIndex(upperSql, currentIdx, GROUP_BY_PATTERN, ORDER_BY_PATTERN, CONNECT_BY_PATTERN, START_WITH_PATTERN);
             if (nextClauseIdx == -1) nextClauseIdx = sql.length();
             String whereCond = sql.substring(currentIdx, nextClauseIdx).trim();
-            // 格式化条件（AND/OR 换行）
             whereCond = whereCond.replaceAll("(?i)\\s+(AND|OR)\\s+", "\n    $1 ");
             sb.append("WHERE\n    ").append(whereCond).append("\n");
             currentIdx = nextClauseIdx;
         }
 
-        // 4. 处理 GROUP BY 子句（PLSQL 兼容）
+        // 4. 处理后续子句（GROUP BY/HAVING 等）
         if (upperSql.indexOf(" GROUP BY ", currentIdx) != -1) {
             int groupIdx = upperSql.indexOf(" GROUP BY ", currentIdx);
-            currentIdx = groupIdx + 10; // GROUP BY 关键字长度
+            currentIdx = groupIdx + 10;
             int nextClauseIdx = findFirstMatchIndex(upperSql, currentIdx, HAVING_PATTERN, ORDER_BY_PATTERN, CONNECT_BY_PATTERN);
             if (nextClauseIdx == -1) nextClauseIdx = sql.length();
-            String groupPart = sql.substring(currentIdx, nextClauseIdx).trim();
-            // 修复：GROUP BY 后无空行，直接跟内容
-            sb.append("GROUP BY\n    ").append(groupPart);
+            sb.append("GROUP BY\n    ").append(sql.substring(currentIdx, nextClauseIdx).trim());
             currentIdx = nextClauseIdx;
         }
-
-        // 5. 处理 HAVING 子句
         if (upperSql.indexOf(" HAVING ", currentIdx) != -1) {
             int havingIdx = upperSql.indexOf(" HAVING ", currentIdx);
-            currentIdx = havingIdx + 7; // HAVING 关键字长度
+            currentIdx = havingIdx + 7;
             int nextClauseIdx = findFirstMatchIndex(upperSql, currentIdx, ORDER_BY_PATTERN, CONNECT_BY_PATTERN);
             if (nextClauseIdx == -1) nextClauseIdx = sql.length();
-            String havingPart = sql.substring(currentIdx, nextClauseIdx).trim();
-            sb.append("\nHAVING\n    ").append(havingPart);
+            sb.append("\nHAVING\n    ").append(sql.substring(currentIdx, nextClauseIdx).trim());
             currentIdx = nextClauseIdx;
         }
-
-        // 6. 处理 START WITH 子句（PLSQL）
-        if (upperSql.indexOf(" START WITH ", currentIdx) != -1) {
-            int startIdx = upperSql.indexOf(" START WITH ", currentIdx);
-            currentIdx = startIdx + 11; // START WITH 关键字长度
-            int nextClauseIdx = findFirstMatchIndex(upperSql, currentIdx, CONNECT_BY_PATTERN, ORDER_BY_PATTERN);
-            if (nextClauseIdx == -1) nextClauseIdx = sql.length();
-            String startPart = sql.substring(currentIdx, nextClauseIdx).trim();
-            sb.append("\nSTART WITH\n    ").append(startPart);
-            currentIdx = nextClauseIdx;
-        }
-
-        // 7. 处理 CONNECT BY 子句（PLSQL）
-        if (upperSql.indexOf(" CONNECT BY ", currentIdx) != -1) {
-            int connectIdx = upperSql.indexOf(" CONNECT BY ", currentIdx);
-            currentIdx = connectIdx + 12; // CONNECT BY 关键字长度
-            int nextClauseIdx = findFirstMatchIndex(upperSql, currentIdx, ORDER_BY_PATTERN);
-            if (nextClauseIdx == -1) nextClauseIdx = sql.length();
-            String connectPart = sql.substring(currentIdx, nextClauseIdx).trim();
-            sb.append("\nCONNECT BY\n    ").append(connectPart);
-            currentIdx = nextClauseIdx;
-        }
-
-        // 8. 处理 ORDER BY 子句
         if (upperSql.indexOf(" ORDER BY ", currentIdx) != -1) {
             int orderIdx = upperSql.indexOf(" ORDER BY ", currentIdx);
-            currentIdx = orderIdx + 10; // ORDER BY 关键字长度
-            String orderPart = sql.substring(currentIdx).trim();
-            sb.append("\nORDER BY\n    ").append(orderPart);
+            currentIdx = orderIdx + 10;
+            sb.append("\nORDER BY\n    ").append(sql.substring(currentIdx).trim());
         }
 
-        // 9. 补充分号（修复：无多余空行，直接加在末尾）
-        if (!sb.toString().trim().endsWith(";")) {
-            sb.append(";");
-        }
-
-        // 移除多余空行，保持格式整洁
+        if (!sb.toString().trim().endsWith(";")) sb.append(";");
         return sb.toString().replaceAll("\\n+", "\n");
     }
 
     /**
-     * 智能拆分字段（忽略函数、子查询中的逗号）
-     */
-    private List<String> splitFieldsSafely(String fields) {
-        List<String> fieldList = new ArrayList<>();
-        int bracketCount = 0;
-        int lastSplitPos = 0;
-
-        for (int i = 0; i < fields.length(); i++) {
-            char c = fields.charAt(i);
-            if (c == '(') {
-                bracketCount++;
-            } else if (c == ')') {
-                bracketCount = Math.max(0, bracketCount - 1);
-            } else if (c == ',' && bracketCount == 0) {
-                // 只有括号平衡时才拆分
-                fieldList.add(fields.substring(lastSplitPos, i).trim());
-                lastSplitPos = i + 1;
-            }
-        }
-        // 添加最后一个字段
-        fieldList.add(fields.substring(lastSplitPos).trim());
-        return fieldList;
-    }
-
-    /**
-     * 查找第一个匹配的子句索引（避免越界）
+     * 查找第一个匹配的子句索引
      */
     private int findFirstMatchIndex(String sql, int startIdx, Pattern... patterns) {
         int minIdx = -1;
@@ -283,9 +290,7 @@ public class MlfLogParser {
             Matcher matcher = pattern.matcher(sql);
             if (matcher.find(startIdx)) {
                 int idx = matcher.start();
-                if (minIdx == -1 || idx < minIdx) {
-                    minIdx = idx;
-                }
+                if (minIdx == -1 || idx < minIdx) minIdx = idx;
             }
         }
         return minIdx;
