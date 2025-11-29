@@ -19,7 +19,7 @@ public class MlfLogParser {
     // 需要大写的常用关键字和函数
     private static final String[] KEYWORDS_TO_UPPER = {
             "count", "sum", "avg", "min", "max", "decode", "nvl", "to_date", "to_char",
-            "exists", "distinct", "as", "in", "null", "is", "like", "between", "not"
+            "exists", "distinct", "as", "in", "null", "is", "like", "between", "not", "asc", "desc"
     };
 
     public String formatMybatisLog(String log) {
@@ -72,12 +72,6 @@ public class MlfLogParser {
             String placeholder = entry.getKey();
             String rawSubQuery = entry.getValue();
 
-            // 递归格式化：子查询内容缩进 +2 层，括号缩进 +1 层
-            // 这样形成阶梯状：
-            // FROM
-            //     (
-            //         SELECT ...
-            //     )
             String bracketIndent = getIndent(indentLevel + 1);
             String formattedSubQuery = formatSqlRecursive(rawSubQuery, indentLevel + 2);
 
@@ -128,18 +122,14 @@ public class MlfLogParser {
             String fromPart = processed.substring(fromIdx + 4, fromEnd).trim();
             sb.append(indent).append("FROM\n");
 
-            // 处理 JOIN
             fromPart = fromPart.replaceAll("(?i)\\s(LEFT|RIGHT|INNER|FULL|OUTER|CROSS)\\s+JOIN\\s", "\n" + subIndent + "$1 JOIN ");
             fromPart = fromPart.replaceAll("(?i)\\sON\\s", " ON ");
 
-            // 确保 FROM 后的内容正确缩进
             String[] lines = fromPart.split("\n");
             for (int i = 0; i < lines.length; i++) {
                 String line = lines[i].trim();
                 if (!line.isEmpty()) {
                     sb.append(subIndent).append(line);
-                    // 【修复】不要在这里强制加换行符，除非不是最后一行
-                    // 这样可以避免 FROM 块和 WHERE 块之间出现空行，因为 WHERE 块开头会自带换行
                     if (i < lines.length - 1) {
                         sb.append("\n");
                     }
@@ -149,26 +139,24 @@ public class MlfLogParser {
 
         // --- 3. WHERE / GROUP BY ... ---
         if (whereIdx != -1) {
-            String wherePart = processed.substring(whereIdx); // 不要 trim()，保留原始位置关系
+            String wherePart = processed.substring(whereIdx);
             String[] keywords = {"WHERE", "GROUP BY", "HAVING", "ORDER BY", "CONNECT BY", "START WITH"};
 
             String currentPart = wherePart;
             for (String kw : keywords) {
-                // 正则说明：匹配关键字，且吃掉后面的空格，防止换行后下一行多出空格
+                // 匹配关键字并处理缩进
                 Matcher matcher = Pattern.compile("(?i)\\b" + kw.replace(" ", "\\s+") + "\\b\\s*").matcher(currentPart);
                 if (matcher.find()) {
                     String foundKw = matcher.group().trim();
-                    // 替换为：换行 + 缩进 + 关键字 + 换行 + 子缩进
-                    // 注意：这里的 \n 会自然衔接上文 FROM 的结尾
                     currentPart = matcher.replaceFirst("\n" + indent + foundKw.toUpperCase() + "\n" + subIndent);
                 }
             }
 
-            // AND / OR 换行对齐
-            currentPart = currentPart.replaceAll("(?i)\\s+AND\\s*", "\n" + subIndent + "AND ");
-            currentPart = currentPart.replaceAll("(?i)\\s+OR\\s*", "\n" + subIndent + "OR ");
+            // 【核心修复】AND / OR 换行对齐
+            // 必须加上 \\b (单词边界)，否则会匹配到 ORDER BY 里的 OR，或 ORG_IDS 里的 OR
+            currentPart = currentPart.replaceAll("(?i)\\s+AND\\b\\s*", "\n" + subIndent + "AND ");
+            currentPart = currentPart.replaceAll("(?i)\\s+OR\\b\\s*", "\n" + subIndent + "OR ");
 
-            // 【关键修复】只去除尾部空格，绝对不能用 trim() 去除头部的换行符
             sb.append(currentPart.replaceAll("\\s+$", ""));
         }
 

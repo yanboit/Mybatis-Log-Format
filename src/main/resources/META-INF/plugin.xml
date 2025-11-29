@@ -21,13 +21,9 @@
 ]]></description>
 
     <change-notes><![CDATA[
-    <h3>🎯 v1.0.0</h3>
+    <h3>🎯 v1.3</h3>
     <ul>
-        <li>✅ 初始版本：支持 MyBatis 标准日志格式化</li>
-        <li>✅ 智能识别：自动提取 Preparing/Parameters 片段</li>
-        <li>✅ 美化输出：SQL 关键字高亮、参数分行展示</li>
-        <li>✅ 便捷操作：右键菜单快速触发 + 快捷键支持</li>
-        <li>✅ 复制功能：一键复制格式化后的完整 SQL</li>
+        <li>✅ 修复关键字识别问题</li>
     </ul>
 ]]></change-notes>
 
