@@ -46,8 +46,7 @@ WHERE
 ORDER BY
     age DESC
 LIMIT
-    0,
-    10;
+    0,10;
 ```
 
 <br />
