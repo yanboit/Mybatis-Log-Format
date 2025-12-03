@@ -57,7 +57,7 @@ LIMIT
 
 ### 方式 1：本地安装（推荐）
 
-1. 下载插件包：[Releases](https://github.com/yanboit/Mybatis-Log-Format/releases/tag/MybatisLogFormat) 中下载最新版本的 `mybatis-sql-formatter-1.0.0.zip`
+1. 下载插件包：[Releases](https://github.com/yanboit/Mybatis-Log-Format/releases) 中下载最新版本的 `mybatis-sql-formatter-1.0.0.zip`
 2. 打开 IDEA → `File → Settings → Plugins → Install Plugin from Disk...`
 3. 选择下载的 zip 包，重启 IDEA 即可生效
 
