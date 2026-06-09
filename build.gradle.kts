@@ -23,7 +23,11 @@ intellij {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    // 移除可能过时的依赖，避免冲突
+    // 仅引入 Jackson 用于解析 Dify 的 JSON。
+    // 版本号要明确，且不要包含 Spring
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
+    implementation("com.fasterxml.jackson.core:jackson-annotations:2.15.2")
+    implementation("com.fasterxml.jackson.core:jackson-core:2.15.2")
 }
 
 tasks {
