@@ -5,26 +5,23 @@ plugins {
 }
 
 group = "wang.imold"
-version = "1.3-SNAPSHOT"
+version = "2.1-SNAPSHOT"
 
 repositories {
     mavenCentral()
 }
 
-// Configure Gradle IntelliJ Plugin
-// Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
-    version.set("2023.1.5")
-    type.set("IC") // Target IDE Platform
-    downloadSources.set(true)
+    // 编译依赖版本 2020.1（最低兼容版本）
+    version.set("2020.1")
+    type.set("IC")
+    downloadSources.set(false)
     updateSinceUntilBuild.set(true)
-    plugins.set(listOf(/* Plugin Dependencies */))
+    plugins.set(listOf())
 }
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    // 仅引入 Jackson 用于解析 Dify 的 JSON。
-    // 版本号要明确，且不要包含 Spring
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
     implementation("com.fasterxml.jackson.core:jackson-annotations:2.15.2")
     implementation("com.fasterxml.jackson.core:jackson-core:2.15.2")
@@ -32,22 +29,25 @@ dependencies {
 
 tasks {
     buildSearchableOptions {
-        enabled = false // 关闭搜索优化（2024 版部分 API 不兼容旧优化逻辑）
+        enabled = false
     }
-    // Set the JVM compatibility versions
+
+    // 兼容 2020 需要 JDK 11
     withType<JavaCompile> {
-        sourceCompatibility = "17"
-        targetCompatibility = "17"
+        sourceCompatibility = "11"
+        targetCompatibility = "11"
     }
     withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-        kotlinOptions.jvmTarget = "17"
+        kotlinOptions.jvmTarget = "11"
     }
 
     patchPluginXml {
-        // 自动填充插件版本和兼容信息
         version.set(project.version.toString())
-        sinceBuild.set("231.0")
-        untilBuild.set("243.*")
+        // --------------------------
+        // 核心：兼容 2020 ~ 最新版
+        // --------------------------
+        sinceBuild.set("201")    // 2020.1
+        untilBuild.set("253.*")  // 2025.3 全覆盖
     }
 
     signPlugin {
